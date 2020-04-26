@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - altair=4.1.*
+  - pandas=1.0.*
+  - python=3.8
+  - pip:
+    - streamlit=0.58.*
