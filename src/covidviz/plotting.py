@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def combine_summary_plots(
-    df, x_var, x_title, y_var, y_title, max_activity, width=200, height=125,
+    df, x_var, x_title, y_var, y_title, y_format, max_activity, width=200, height=125,
 ):
 
     combined_plots = []
@@ -17,6 +17,7 @@ def combine_summary_plots(
             x_title=x_title,
             y_var=y_var,
             y_title=y_title,
+            y_format=y_format,
             max_activity=max_activity,
             width=width,
             height=height,
@@ -24,14 +25,10 @@ def combine_summary_plots(
         if len(sub_combined) == 4:
             combined_plots.append(alt.hconcat(*sub_combined))
             sub_combined = []
-
-        if len(sub_combined) == 0:
-            state_plot.layer[0].encoding.y.axis.title = ""
-        elif len(sub_combined) == 3:
-            state_plot.layer[1].encoding.y.axis.title = ""
+        elif len(sub_combined) != 0:
+            state_plot.layer[1].encoding.y.axis.title = " "
         else:
-            state_plot.layer[0].encoding.y.axis.title = ""
-            state_plot.layer[1].encoding.y.axis.title = ""
+            pass
         sub_combined.append(state_plot)
     combined_plots.append(alt.hconcat(*sub_combined))
     return alt.vconcat(*combined_plots).configure_axis(
@@ -47,12 +44,14 @@ def plot_infection_activity_summary(
     x_title,
     y_var,
     y_title,
+    y_format,
     max_activity,
     width=250,
     height=150,
 ):
     min_date = df.query(f"Bundesland == '{state}'")["Meldedatum"].min()
     max_date = df.query(f"Bundesland == '{state}'")["Meldedatum"].max()
+    max_y = df[y_var].max()
     date_range = [
         str(time.date())
         for time in pd.date_range(start=min_date, freq="W", end=max_date)
@@ -64,28 +63,26 @@ def plot_infection_activity_summary(
                 title=x_title, offset=0, grid=False, values=date_range, format="%b %d"
             ),
         ),
-        y=alt.Y(f"{y_var}:Q", axis=alt.Axis(format="d")),
+        y=alt.Y(f"{y_var}:Q", axis=alt.Axis(format=y_format)),
     )
-    points = base.mark_point(color="DarkSlateBlue").encode(
-        y=alt.Y(f"{y_var}:Q"),
-        tooltip=list(
-            set(["Meldedatum", x_var, "Neuinfektionen", "infections_cumulative"])
-        ),
-    )
+    points = base.mark_point(color="DarkSlateBlue").encode(y=alt.Y(f"{y_var}:Q"),)
     lines = (
         points.transform_loess(
             on=x_var, loess=y_var, as_=[x_var, f"{y_var}_loess"], groupby=["Bundesland"]
         )
         .mark_line(color="DarkSlateBlue")
-        .encode(y=alt.Y(f"{y_var}_loess:Q", axis=alt.Axis(format="d", title=y_title)))
+        .encode(
+            y=alt.Y(
+                f"{y_var}_loess:Q",
+                axis=alt.Axis(format=y_format, title=y_title),
+                scale=alt.Scale(domain=(0, 1)),
+            ),
+        )
     )
 
     total_activity = base.mark_area(color="#5ba3cf").encode(
         y=alt.Y(
             "total_activity:Q",
-            # axis=alt.Axis(
-            #     format="%", orient="right", labels=True, title="Google Mobility Index"
-            # ),
             axis=alt.Axis(orient="right", labels=False, ticks=False, title=""),
             scale=alt.Scale(domain=(-max_activity, max_activity)),
         ),
@@ -96,7 +93,6 @@ def plot_infection_activity_summary(
         .resolve_scale(y="independent")
         .properties(width=width, height=height)
     )
-    # infections_activity_summary.layer[1].encoding.y.title = ""
     return infections_activity_summary
 
 
@@ -108,6 +104,7 @@ def plot_infection_details(
     x_title,
     y_var,
     y_title,
+    y_format,
     max_activity,
     width=900,
     height=350,
@@ -125,7 +122,7 @@ def plot_infection_details(
                 title=x_title, offset=0, grid=False, values=date_range, format="%b %d"
             ),
         ),
-        y=alt.Y(f"{y_var}:Q", axis=alt.Axis(format="d")),
+        y=alt.Y(f"{y_var}:Q", axis=alt.Axis(format=y_format)),
     )
     points = base.mark_point(color="DarkSlateBlue").encode(
         y=alt.Y(f"{y_var}:Q"),
@@ -138,7 +135,9 @@ def plot_infection_details(
             on=x_var, loess=y_var, as_=[x_var, f"{y_var}_loess"], groupby=["Bundesland"]
         )
         .mark_line(color="DarkSlateBlue")
-        .encode(y=alt.Y(f"{y_var}_loess:Q", axis=alt.Axis(format="d", title=y_title)))
+        .encode(
+            y=alt.Y(f"{y_var}_loess:Q", axis=alt.Axis(format=y_format, title=y_title))
+        )
     )
 
     total_activity = base.mark_area(color="#5ba3cf").encode(

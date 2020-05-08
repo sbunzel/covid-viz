@@ -65,6 +65,8 @@ class PlotData:
                     "num_measures": lambda df: df["Maßnahmen"].apply(
                         lambda x: len(x.split("und")) if isinstance(x, str) else 0
                     ),
+                    "relative_growth": lambda df: df["absolute_growth"]
+                    / df["infections_cumulative"].shift(),
                 }
             )
             .merge(self.mobility, on=["Bundesland", "Meldedatum"], how="outer")

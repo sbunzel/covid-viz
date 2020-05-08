@@ -30,8 +30,9 @@ def main():
         df=df,
         x_var="Meldedatum",
         x_title="",
-        y_var="absolute_growth",
-        y_title="Absolute Growth in Cumulative Cases",
+        y_var="relative_growth",
+        y_title="Relative Growth in Total Cases",
+        y_format="%",
         max_activity=max_activity,
     )
     st.altair_chart(summary_plot, use_container_width=False)
@@ -40,6 +41,12 @@ def main():
         options=list(state_mapper.keys()),
         format_func=state_mapper.get,
     )
+    y_var = st.radio(
+        label="",
+        options=["relative_growth", "absolute_growth"],
+        format_func=lambda x: x.replace("_", " ").title(),
+    )
+    y_format = "%" if y_var == "relative_growth" else "d"
     infection_title = f"{state_mapper[state]}: Infections (last updated: {plot_data.infections_last_updated[state].date()})"
     infection_plot = plotting.plot_infection_details(
         df=df,
@@ -47,8 +54,9 @@ def main():
         title=infection_title,
         x_var="Meldedatum",
         x_title="Date",
-        y_var="absolute_growth",
-        y_title="Absolute Growth in Cumulative Cases",
+        y_var=y_var,
+        y_format=y_format,
+        y_title=f"{y_var.replace('_', ' ').title()} in Cumulative Cases",
         max_activity=max_activity,
     )
     st.altair_chart(infection_plot, use_container_width=False)
